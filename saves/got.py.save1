@@ -1,0 +1,236 @@
+################################################################################
+############################ Petit logiciel de Knn #############################
+################## Réalisé dans le cadre du TD d'Info/Prog #####################
+########################### par JB Manchon (2134945) ###########################
+########################### M1 S8 Sciences Cognitives ##########################
+############################## Licence GNU (2017) ##############################
+################################################################################
+
+import csv
+
+# Spécifiez ici le chemin complet du fichier got.csv
+# ou modifiez la ligne 97 comme indiqué.
+win_fi = "C:\\Users\\jjb\\Downloads\\got.csv"
+nux_fi = "/run/media/darkjibe/DarkHD4/Documents/Scolaire/4 - Fac/Master/S8/Informatique et programmation/got.csv"
+
+
+class Base(object):
+
+    def __init__(self, persos): # persos doit être une liste de listes à
+                                # 14 éléments
+        self.personnages = []
+        for p in got:
+            var_name = p[0].replace(' ', '_')
+            globals()[var_name] = Personnage(p[0], p[1], p[2], p[3], p[4], \
+                                             p[5], p[6], p[7], p[8], p[9], \
+                                             p[10], p[11], p[12], p[13])
+            self.personnages.append(globals()[var_name])
+            del globals()[var_name]
+
+
+class Personnage(object):
+
+    def __init__(self, nm, sx, cult, hs, b1, b2, b3, b4, b5, \
+                 maried, noble, deadRel, pop, alive):
+        self.name = nm #str
+        self.sex = sx #float
+        self.culture = cult #str
+        self.house = hs #str
+        self.book1 = b1 #float
+        self.book2 = b2 #float
+        self.book3 = b3 #float
+        self.book4 = b4 #float
+        self.book5 = b5 #float
+        self.isMaried = maried #float
+        self.isNoble = noble #float
+        self.numDeadRelations = deadRel #float
+        self.popularity = pop #float
+        self.isAlive = alive #float
+
+    def distance_other(self, other): # other doit être un obj de type Personnage
+        dist = 0
+        if self.sex != other.sex:  # Les attributs sont pondérés selon une
+            dist += 1              # appréciation strictement personnelle
+        if self.culture != other.culture:
+            dist += 0.5            # Feel free to change these values
+        if self.book1 != other.book1:
+            dist += 0.2
+        if self.book1 != other.book2:
+            dist += 0.2
+        if self.book1 != other.book3:
+            dist += 0.2
+        if self.book1 != other.book4:
+            dist += 0.2
+        if self.book1 != other.book5:
+            dist += 0.2
+        if self.isMaried != other.isMaried:
+            dist += 0.5
+        if self.isNoble != other.isNoble:
+            dist += 1
+        dist += abs(self.numDeadRelations - other.numDeadRelations)*1.6
+        dist += abs(self.popularity - other.popularity)*1.7
+        return dist
+#########Vestige d'un passé glorieux:
+#        for value in p1:
+#            if p1.index(value) == 0 or value == '' or p2[p1.index(value)] == '':
+#                pass
+#            elif isinstance(value, float) and isinstance(p2[p1.index(value)], float):
+#                #print(value)
+#                dist += abs(value - p2[p1.index(value)])
+#                print(p2[p1.index(value)])
+#            elif isinstance(value, str):
+#                #print(value)
+#                if value != p2[p1.index(value)]:
+#                    dist += 1
+########Fin de la zone archéologique;
+
+    def distance_base(self, base):  # base doit être un obj de type Base
+        dist = []
+        for p in base.personnages:
+            if p.name == self.name:  # On ne compare pas 
+                pass                 # le personnage à lui-même
+            else:
+                dist.append((self.distance_other(p), p.name))
+        return dist
+
+def open_csv_base():
+    """
+        Appellée par __main__.
+        Ouvre le fichier csv et le cast en list pour permettre son formatage
+        par formating().
+    """
+    with open(nux_fi, newline='') as csvfile: # Modifier ici la variable *_fi
+                                              # par "got.csv" pour travailler dans
+                                              # le répertoire courrant.
+        got = csv.reader(csvfile, delimiter=';')  # Lecture du csv
+        got = list(got)  # Casting du reader en list
+        del got[0]  # Suppression de la première ligne (inutile)
+    return got
+
+def formating(g):
+    """
+        Appellée par __main__.
+        Formate les données en float si possible.
+    """
+    for row in g:
+        del row[0]  # Suppression de la première valeur (numéro de perso)
+        for i in range(1, len(row)):
+            try:  # Si la valeur est numérique, on la cast en float
+                row[row.index(row[i])] = float(row[i])
+            except ValueError:  # Sinon on passe à la suivante
+                pass
+
+def tmp_perso(perso, mode=0):
+    """
+        Appelée par get_perso() ou par __main__.
+        Prend un obj de type Personnage en argument.
+        En mode 0 : renvoie l'index du personnage passé en argument
+                    dans la liste base.personnages.
+        En mode 1 : crée deux variables gloabales utilisées pour la
+                    création de la base de tuples de comparaison.
+    """ 
+    global perso_test, perso_nb
+    for p in base.personnages:
+        if p.name == perso:
+            if mode == 1:
+                perso_test = p  # Obj Personnage
+                perso_nb = base.personnages.index(p)  # Index dans la base
+            else:
+                return base.personnages.index(p)  # Index dans la base
+
+def get_perso():
+    """
+        Appelée par __main__.
+        Permet une entrée utilisateur : le nom du personnage à tester.
+        Appelle tmp_perso() pour le parcours de la base.
+    """
+    global perso_test, perso_nb
+    perso_test = input("Veuillez choisir un personnage : ")
+    #perso_test = "Barristan Selmy" #"Arya Stark"
+    tmp_perso(perso_test, 1)
+
+def create_working_base():
+    """
+        Crée la base de donnée de comparaison
+        (Un personnage vs. tous les autres)
+    """
+    while True:
+        get_perso()  # On demande quel personnages choisir
+        try:
+            base_ = base.personnages[perso_nb].distance_base(base)
+            break;
+        except NameError:  # Teste si le nom entré est bien dans la base
+            print("Le nom du personnage est inconnu")
+    return base_
+
+def get_k():
+    """
+        Demande à l'utilisateur de définir le k
+        (nombre de voisins à prendre en compte pour la prédiction)
+    """
+    while True:
+        try:
+            return abs(int(input("Veuillez choisir un entier positif correspondant au k : ")))
+        except ValueError:
+            pass  # On teste que l'entrée est bien un entier positif
+
+def get_proba(base_t, k_):
+    proba_life = 0
+    for i in range(k_):  # Pour les k plus proches voisins :
+        j = tmp_perso(base_t[i][1])  # On récupère le nom du perso
+        #print(j)
+        if base.personnages[j].isAlive:  # On vérifie s'il/elle est en vie
+            print(base.personnages[j].name)
+            proba_life += 1              # Si c'est le cas on incrémente
+    return round(1 - (proba_life/k_), 3)
+
+def do_magic():
+    base_tuple = create_working_base()  # On crée la base de comparaison
+    base_triee = sorted(base_tuple)  # On trie la base par distances
+    #print(base_triee)
+    k = get_k()
+    print("Compte tenu des connaissances actuelles, la probablité de décès de",\
+          perso_test.name, "est de", get_proba(base_triee, k))
+
+if __name__ == "__main__":
+    got = open_csv_base()
+    formating(got)
+    base = Base(got)
+    print("Bienvenu dans le prédicteur de décès de GoT !")
+    print("Ce programme utilise une méthode de calcul basée sur les Kpp.")
+    do_magic()
+    # On affiche enfin le résultat en oubliant pas de diviser par le nombre
+    # de voisins ni de soustraire la proba de vie à 1 pour obtenir la proba
+    # de décès. On arrondie à trois décimales pour plus de lisibilité.
+    
+##for p in got:
+###    p[0].replace(' ', '_')
+##    globals()[p[0].replace(' ', '_')] = Personnage(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13])
+
+#print(type(base.personnages[base.personnages.index(Arya_Stark)]))
+#base.personnages.index('Arya_Stark')
+#print(base.personnages[0].distance_base(base))
+#print(base.personnages[3].distance_base(base))
+
+
+
+##print(Arya_Stark.name, Arya_Stark.culture, Arya_Stark.house)
+##print(Arya_Stark.distance(Bran_Stark))
+##print(Arya_Stark.distance(Cersei_Lannister))
+##print(Arya_Stark.distance(Mance_Rayder))
+##print(Arya_Stark.distance(Dickon_Tarly))
+
+##print(got[0])
+##print(got[0][0], type(got[0][0]))
+##print(got[0][3], type(got[0][3]))
+##print(got[0][12], type(got[0][12]))
+
+##print("Arya/Arya :", distance(got[0], got[0]))
+##print("Arya/Cersei :", distance(got[0], got[3]))
+##print("Arya/Bran :", distance(got[0], got[2]))
+##print("Arya/Rhaegar Targaryen :", distance(got[0], got[24]))
+##print("Arya/Petyr Baelish :", distance(got[0], got[9]))
+##print("Arya/Eddard Stark :", distance(got[0], got[5]))
+##print("Arya/Walder Frey :", distance(got[0], got[18]))
+##print("Arya/Euron Greyjoy :", distance(got[0], got[28]))
+##print("Arya/Tyrion Lannister :", distance(got[0], got[13]))

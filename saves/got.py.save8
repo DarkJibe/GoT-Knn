@@ -1,0 +1,414 @@
+################################################################################
+############################ Petit logiciel de Knn #############################
+################## Réalisé dans le cadre du TD d'Info/Prog #####################
+########################### par JB Manchon (2134945) ###########################
+########################### M1 S8 Sciences Cognitives ##########################
+############################## Licence GNU (2017) ##############################
+################################################################################
+
+import csv, time
+
+# Spécifiez ici le chemin complet du fichier got.csv
+# ou modifiez la ligne 124 comme indiqué.
+win_fi = "C:\\Users\\jjb\\Downloads\\got.csv"
+nux_fi = "/run/media/darkjibe/DarkHD4/Documents/Scolaire/4 - Fac/Master/S8/Informatique et programmation/got.csv"
+coef_pond = [1, 4, 4, 1, 2, 10]  # Ces attributs sont pondérés selon une
+                                     # appréciation strictement personnelle
+                                     # Feel free to change these values
+pond_fi = "/run/media/darkjibe/DarkHD4/Documents/Scolaire/4 - Fac/Master/S8/Informatique et programmation/pond.csv"
+
+class Base(object):
+
+    def __init__(self, persos): # persos doit être une liste de listes à
+                                # 14 éléments
+        self.personnages = []
+        for p in got:  # Pour tous les presonnages de la liste got
+            var_name = p[0].replace(' ', '_')  # On supprime l'espace pour
+                                               # le nom des variables
+            globals()[var_name] = Personnage(p[0], p[1], p[2], p[3], p[4], \
+                                             p[5], p[6], p[7], p[8], p[9], \
+                                             p[10], p[11], p[12], p[13])
+                # On instancie un objet Personnage() selon les attributs du perso
+            self.personnages.append(globals()[var_name])  # On l'ajoute à la
+                                                          # liste base.personnages
+            del globals()[var_name]  # On suprimme la variable globale
+
+
+class Personnage(object):
+
+    def __init__(self, nm, sx, cult, hs, b1, b2, b3, b4, b5, \
+                 maried, noble, deadRel, pop, alive):
+        self.name = nm #str
+        self.sex = sx #float
+        self.culture = cult #str
+        self.house = hs #str
+        self.book1 = b1 #float
+        self.book2 = b2 #float
+        self.book3 = b3 #float
+        self.book4 = b4 #float
+        self.book5 = b5 #float
+        self.isMaried = maried #float
+        self.isNoble = noble #float
+        self.numDeadRelations = deadRel #float
+        self.popularity = pop #float
+        self.isAlive = alive #float
+
+    def distance_other(self, other, list_pond): # other doit être un obj
+                                                # de type Personnage
+                                                # et list_pond une liste[5]
+        """
+            Prend un objet de type Personnage et une liste de 6 nombre en arg.
+            Calcule la distance entre deux obj Personnage en fonction de
+            la pondération séléctionnée.
+            Renvoie la distance en float.
+        """
+        dist = 0
+        if self.sex != other.sex:
+            dist += list_pond[0]
+        if self.culture != other.culture:
+            dist += list_pond[1]
+        if self.book1 != other.book1:
+            dist += 0
+        if self.book1 != other.book2:
+            dist += 0
+        if self.book1 != other.book3:
+            dist += 0
+        if self.book1 != other.book4:
+            dist += 0
+        if self.book1 != other.book5:
+            dist += 0
+        if self.isMaried != other.isMaried:
+            dist += list_pond[2]
+        if self.isNoble != other.isNoble:
+            dist += list_pond[3]
+        dist += abs(self.numDeadRelations - other.numDeadRelations)*list_pond[4]
+        dist += abs(self.popularity - other.popularity)*list_pond[5]
+        return dist  # float
+#########Vestige d'un passé glorieux:
+#        for value in p1:
+#            if p1.index(value) == 0 or value == '' or p2[p1.index(value)] == '':
+#                pass
+#            elif isinstance(value, float) and isinstance(p2[p1.index(value)], float):
+#                #print(value)
+#                dist += abs(value - p2[p1.index(value)])
+#                print(p2[p1.index(value)])
+#            elif isinstance(value, str):
+#                #print(value)
+#                if value != p2[p1.index(value)]:
+#                    dist += 1
+#       return dist
+########Fin de la zone archéologique;
+
+    def distance_base(self, base, l_pond=coef_pond):  # base doit être un obj
+                                                      # de type Base
+        """
+            Calcule les distances entre un obj Personnage et tous les obj
+            Personnage de la base (self exclu).
+            Renvoie une liste de distances.
+        """
+        dist = []
+        for p in base.personnages:  # Pour chaque personnage de la base
+            if p.name == self.name:  # On ne compare pas 
+                pass                 # le personnage à lui-même
+            else:
+                dist.append((self.distance_other(p, l_pond), p.name))
+        return dist  # liste de tuples
+
+def open_csv_base():
+    """
+        Appellée par __main__.
+        Ouvre le fichier csv et le cast en list pour permettre son formatage
+        par formating().
+        Renvoie la liste des personnages ainsi que de leurs attributs.
+    """
+    with open("got.csv", newline='') as csvfile: # Modifier ici la variable *_fi
+                                              # par "got.csv" pour travailler dans
+                                              # le répertoire courrant.
+        got = csv.reader(csvfile, delimiter=';')  # Lecture du csv
+        got = list(got)  # Casting du reader en list
+        del got[0]  # Suppression de la première ligne (inutile)
+    return got  # liste de listes
+
+def open_csv_pond():
+    """
+        Appellée par __main__.
+        Ouvre le fichier csv et le cast en list.
+        Cast les valeurs en int.
+        Renvoie la liste des pondérations (liste de listes)
+    """
+    with open("pond.csv", newline='') as csvfile: # Modifier ici la variable
+                                                   # *_fi par "pond.csv" pour
+                                                   # travailler dans le
+                                                   # répertoire courrant.
+        pond = csv.reader(csvfile, delimiter=',')  # Lecture du csv
+        pond = list(pond)  # Casting du reader en list
+        n_pond = [[int(i) for i in j] for j in pond]  # Casting des valeurs
+    return n_pond  # liste de listes                  # en int
+
+def formating_flt(g):
+    """
+        Appellée par __main__.
+        Formate les données en float si possible.
+    """
+    for row in g:
+        del row[0]  # Suppression de la première valeur (numéro de perso)
+        for i in range(1, len(row)):
+            try:  # Si la valeur est numérique, on la cast en float
+                row[row.index(row[i])] = float(row[i])
+            except ValueError:  # Sinon on passe à la suivante
+                pass
+
+def tmp_perso(perso_eval, mode=0):
+    """
+        Appelée par get_perso() ou par __main__.
+        Prend un obj de type Personnage en argument.
+        En mode 0 : renvoie l'index du personnage passé en argument
+                    dans la liste base.personnages.
+        En mode 1 : crée deux variables globales utilisées pour la
+                    création de la base de tuples de comparaison.
+    """ 
+    global perso_tested, perso_index
+    for perso in base.personnages:  # On parcourt la base pour obtenir les info
+        if perso.name.lower() == perso_eval.lower():  # relatives au personnage
+            if mode:                                  # passé en argument
+                perso_tested = perso  # Obj Personnage
+                perso_index = base.personnages.index(perso)  # Index dans la base
+            else:
+                return base.personnages.index(perso)  # Index dans la base
+
+def get_perso():
+    """
+        Appelée par create_working_base().
+        Permet une entrée utilisateur : le nom du personnage à tester.
+        La variable perso_test est déclarée globale pour plus de clareté.
+        Appelle tmp_perso() pour le parcours de la base.
+    """
+    global perso_tested
+    perso_tested = input("Veuillez choisir un personnage (par défaut : Arya Stark) : ") or "Arya Stark"
+    # On demande le personnage (insensible à la casse).
+    # Si aucune entrée, "Arya Stark" est séléctionnée par défaut.
+    #perso_test = "Arya Stark" #"Barristan Selmy" #"Eddard Stark" #"Cersei Lannister"
+    tmp_perso(perso_tested, 1)  # Crée les deux variables
+                                # perso_test & perso_index
+
+def create_working_base():
+    """
+        Crée la base de donnée de comparaison à l'aide de la
+        méthode Base.Personnage.distance_base().
+        (un personnage vs. tous les autres)
+        Appelle get_perso() pour le choix du personnage.
+    """
+    while True:
+        get_perso()  # On demande quel personnages choisir
+        try: 
+            base_ = base.personnages[perso_index].distance_base(base)
+            # Appelle la méthode .distance_base() afin de crée la base
+            # comparaison.
+            break;
+        except NameError:  # Teste si le nom entré est bien dans la base
+            print("Le nom du personnage est inconnu")
+    return base_
+
+def get_k():
+    """
+        Demande à l'utilisateur de définir le k
+        (nombre de voisins à prendre en compte pour la prédiction)
+    """
+    while True:
+        try:
+            return abs(int(input("Veuillez choisir un entier positif correspondant au k : ")))
+        except ValueError:
+            pass  # On teste que l'entrée est bien un entier positif
+
+def get_proba(base_t, k_):
+    """
+        Appelée par perso_test()
+        Calcule la probabilité de décès.
+        Renvoie un float.
+    """
+    proba_life = 0
+    for i in range(k_):  # Pour les k plus proches voisins :
+        j = tmp_perso(base_t[i][1])  # On récupère le nom du perso
+        #print(j)
+        if base.personnages[j].isAlive:  # On vérifie s'il/elle est en vie
+            #print(base.personnages[j].name)
+            proba_life += 1              # Si c'est le cas on incrémente
+    return round(1 - (proba_life/k_), 3)  # On renvoit la proba de décès
+
+def check_prediction(perso, prediction):
+    """
+        Appelée par for_perso_test() ou par full_test()
+        Vérifie la qualité de la prédiction de décès au seuil 0.5.
+        Renvoie un booléen.
+    """
+    if prediction < 0.5 and perso.isAlive:
+        return True  # Perso en vie prédit vivant : OK.
+    elif prediction > 0.5 and not perso.isAlive:
+        return True  # Perso décédé prédit mort : OK.
+    else:
+        return False  # Erreur de prédiction.
+
+def format_time(time):
+    """
+        Appelée par for_full_test() ou estimate_time()
+        Formate un temps en secondes en temps HH:MM:SS.
+        Renvoie une liste [heures, minutes, secondes].
+    """
+    h = round(time // 3600)
+    m = round(time // 60 - h * 60)
+    s = round(time % 60)
+    return [h, m, s]
+
+def estimate_time(k_, ponderations):
+    """
+        Estime le temps de calcul en multipliant le nombre de jeux de
+        pondarations par le temps de calcul nécessaire pour un seul jeu.
+        Renvoie une durée formatée par format_time().
+    """
+    t1 = time.time()
+    test = full_test(k_, ponderations[0])
+    t2 = time.time()
+    return format_time((t2 - t1) * len(ponderations))
+
+def perso_test(base_tuple_, k_):
+    """
+        Appelée par for_perso_test() ou full_test()
+        Trie la base de distance passée en argument.
+        Appele get_proba(base de distances, k) et renvoie le résultat.
+    """
+    base_triee = sorted(base_tuple_)  # On trie la base de distances (tri croissant)
+    #print(base_triee)
+    return get_proba(base_triee, k_)  # On calcule la probabilité de décès
+                                      # du perso en fonction des kppv.
+
+def for_perso_test(k_2):
+    """
+        Appelée par do_magic()
+        Test un personnage vs. tous les autres.
+        Appelle get_k() et get_proba()
+        Affiche le résultat directement dans la console.
+        Ne renvoie rien.
+    """
+    base_tuple = create_working_base()  # On crée la base de comparaison
+    p = perso_test(base_tuple, k_2)
+    print("Compte tenu des connaissances actuelles, la probablité de décès de",\
+          perso_tested.name, "est de", p)
+    # On affiche le résultat en oubliant pas de diviser par le nombre
+    # de voisins ni de soustraire la proba de vie à 1 pour obtenir la proba
+    # de décès. On arrondie à trois décimales pour plus de lisibilité.
+    if check_prediction(perso_tested, p):  # On affiche le résultat en fonction
+        print("La prédiction se révèle exacte.")  # du booléen renvoyé par
+    else:                                         # check_prediction()
+        print("La prédiction se révèle erronée.")
+
+def full_test(k, l_pond):
+    """
+        Appelée par romane()
+        Prend un jeu de pondérations en argument.
+        Teste chacun des personnages de la base vs. tous les autres.
+        Renvoie le taux de succès et le k utilisé.
+    """
+    nb_succes = 0
+    for perso in base.personnages:  # Pour chaque perso dans la base :
+        base_tuple = perso.distance_base(base, l_pond)  # On calcule les
+                                                        # différentes distances.
+        p = perso_test(base_tuple, k)
+        if check_prediction(perso, p):  # On vérifie la qualité de la prédiction
+            nb_succes += 1  # On incrémente pour la mesure totale finale.
+    return [round(nb_succes / len(base.personnages), 3), k]  # On renvoie le taux de
+                                                   # prédictions correctes.
+
+def writer_full_test(res, t_, coef_):
+    """
+        Appelée par romane().
+        Ouvre le fichier "resultats.csv".
+        Écrit le résultat de chaque test ainsi que les coefficients utilisés
+        et le temps de calcul de l'opération.
+    """
+    with open("resultats.csv", 'a') as f:
+        f.write("Tx de succes : {} pour k = {} en {} sec."
+                .format(res[0],res[1], t_))
+        f.write("Coefs : {}, {}, {}, {}, {}, {}\n".format(coef_[0], coef_[1], \
+                                                          coef_[2], coef_[3], \
+                                                          coef_[4], coef_[5]))
+
+def romane(k_, p_=coef_pond):
+    """
+        Appelée par for_full_test().
+        Lance le calcul de probabilité pour un jeu de pondération.
+        en appelant full_test().
+        Mesure la durée du calcul.
+        Appelle writer_full_test() pour l'écriture dans le fichier "resultats.csv".
+        Renvoie une liste [[taux de succès, k], temps).
+    """
+    t1 = time.time()
+    tx_succes = full_test(k_, p_)
+    t2 = time.time()
+    t = round(t2-t1, 3)  # Temps de calcul en seconde
+    writer_full_test(tx_succes, t, p_)
+    return [tx_succes, t]
+
+def for_full_test(k_, pond_, mode=0):
+    """
+        Appelée par do_magic().
+        Lance les calculs successifs pour chaque jeu de pondérations
+        en appelant romane().
+        Mesure le temps total de calcul et le formate en appelant format_time().
+    """
+    print("Travail en cours.")
+    if mode:
+        t0 = time.time()  # Temps de départ
+        for p in pond_:  # Pour chaque pondération dans la liste
+            romane(k_, p)
+        tmax = time.time()  # Temps final
+        ttot = format_time(tmax - t0)  #  Temps de calcul total
+        with open("resultats.csv", 'a') as f:
+            f.write("Portion calculée en {}h {}min {}sec."
+                    .format(ttot[0], ttot[1], ttot[2]))
+    else:
+        taux_et_t = romane(k_)  # Liste [[tx_succes, k], temps]
+        print("Le taux de succès sur l'ensemble de la base est de " + \
+              str(taux_et_t[0][0]) + '.')
+        print("Calcul effectué en", taux_et_t[1], "sec.")
+
+def do_magic(ch, sl=0):
+    """
+        Where the magic happens.
+    """
+    k = get_k()  # Entrée utilisateur : k
+    if ch == 'P':
+        for_perso_test(k)  # Pour la proba de décès d'un seul perso
+    else:
+        if sl == 'T':  # Pour toutes les pondérations d'un fichier "pond.csv"
+            pond = open_csv_pond()
+            print("Estimation du temps de calcul nécessaire")
+            testime = estimate_time(k, pond)
+            print("Temps de calcul estimé : {}h {}min {}sec"
+                  .format(testime[0], testime[1], testime[2]))
+            for_full_test(k, pond, 1)
+        else:  # Pour un seul jeu de pondérations (coef_pond, cf. début du soft)
+            for_full_test(k, coef_pond)
+    print("Fait.")   # Finish !
+
+if __name__ == "__main__":
+    got = open_csv_base()
+    formating_flt(got)
+    base = Base(got)
+    print("Bienvenu dans le prédicteur de décès de GoT !")
+    print("Ce programme utilise une méthode de calcul basée sur les Kpp.")
+##    #k = get_k()  Utile ici ? Pas sûr.
+##    k = 10
+#    choice = 'L'  # Pour tester toute la base sans perte de temps 
+    choice = ''
+    select = ''
+    while choice not in ['L', 'P']:  # Vérifie la nature de l'entrée
+          choice = input("Mode : Leave_one_out (L) ou Personnage (P) : ")
+          choice = choice.upper()  # On s'affranchie de la casse
+    if choice == 'L':
+#        select = 'T'  # Pour tester toute les pondérations sans perte de temps 
+        while select not in ['T', 'U']:  # Vérifie la nature de l'entrée
+              select = input("Mode : Toutes les pondérations (T) "
+                             "ou Un seul jeu de pondération (U) : ")
+              select = select.upper()  # On s'affranchie de la casse
+    do_magic(choice, select)
+
